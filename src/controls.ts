@@ -13,6 +13,12 @@ const THEME_OPTIONS = [
   { label: '暖纸', value: 'warm' },
   { label: '学术', value: 'academic' },
   { label: '杂志', value: 'editorial' },
+  { label: '锤子便签', value: 'smartisan' },
+  { label: '暗夜', value: 'noir' },
+  { label: '薄荷', value: 'mint' },
+  { label: '水墨', value: 'ink' },
+  { label: '科技', value: 'tech' },
+  { label: '牛皮纸', value: 'kraft' },
 ]
 
 const FONT_OPTIONS = [

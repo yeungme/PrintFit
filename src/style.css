@@ -85,6 +85,19 @@ body {
   font-weight: 600;
 }
 
+.status-zoom {
+  color: var(--text-secondary);
+  cursor: default;
+}
+
+.status-zoom.zoom-modified {
+  background: var(--accent-dim);
+  color: var(--accent);
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-weight: 600;
+}
+
 .status-overflow {
   color: var(--danger);
   font-weight: 600;
@@ -141,6 +154,28 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sample-select {
+  padding: 3px 8px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: normal;
+  cursor: pointer;
+  outline: none;
+}
+
+.sample-select:focus {
+  border-color: var(--border-focus);
 }
 
 .input-textarea {
@@ -249,24 +284,28 @@ body {
 /* ─── Right Panel (A4 Preview) ───────────── */
 .right-panel {
   grid-area: right;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   overflow: auto;
   padding: 30px;
   background: var(--bg-app);
   min-height: 0;
   min-width: 0;
+  cursor: grab;
   /* subtle cross pattern */
   background-image:
     radial-gradient(circle, #d5d0c6 1px, transparent 1px);
   background-size: 20px 20px;
 }
 
+.right-panel.dragging {
+  cursor: grabbing;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
 /* ─── A4 Wrapper (handles scaling) ────────── */
 .a4-wrapper {
   position: relative;
-  flex-shrink: 0;
+  margin: auto;
 }
 
 /* ─── A4 Page ────────────────────────────── */
@@ -524,6 +563,165 @@ body {
 
 .a4-page.theme-editorial hr {
   border-top-width: 3px;
+}
+
+/* ─── Theme: Smartisan Notes (锤子便签) ──── */
+.a4-page.theme-smartisan {
+  --page-bg: #faf8f2;
+  --page-text: #333333;
+  --heading-color: #333333;
+  --link-color: #9b4d2b;
+  --code-bg: #f3f0e8;
+  --code-inline-bg: #eeeae0;
+  --quote-border: #b5472a;
+  --quote-text: #666;
+  --hr-color: #c8c0b0;
+  --table-border: #d8d0c4;
+  --table-header-bg: #f3f0e8;
+}
+
+.a4-page.theme-smartisan h1 {
+  font-weight: 900;
+  letter-spacing: 0.02em;
+}
+
+.a4-page.theme-smartisan h2 {
+  color: #b5472a;
+}
+
+.a4-page.theme-smartisan hr {
+  border-top: none;
+  border-bottom: 1px dashed #c8b8a0;
+  margin: 1.2em 2em;
+}
+
+.a4-page.theme-smartisan blockquote {
+  border-left-color: #b5472a;
+  border-left-width: 3px;
+}
+
+/* ─── Theme: Noir (暗夜) ──────────────────── */
+.a4-page.theme-noir {
+  --page-bg: #1a1a2e;
+  --page-text: #d4d4dc;
+  --heading-color: #e8c547;
+  --link-color: #6bafff;
+  --code-bg: #16162a;
+  --code-inline-bg: #242444;
+  --quote-border: #e8c547;
+  --quote-text: #a0a0b0;
+  --hr-color: #3a3a5c;
+  --table-border: #3a3a5c;
+  --table-header-bg: #222240;
+}
+
+.a4-page.theme-noir hr {
+  border-top-width: 1px;
+}
+
+/* ─── Theme: Mint (薄荷) ──────────────────── */
+.a4-page.theme-mint {
+  --page-bg: #f2faf6;
+  --page-text: #1a2e26;
+  --heading-color: #1a7a5a;
+  --link-color: #1a7a5a;
+  --code-bg: #e6f5ee;
+  --code-inline-bg: #ddf0e6;
+  --quote-border: #2ea07a;
+  --quote-text: #3d6b5a;
+  --hr-color: #b0d8c8;
+  --table-border: #b0d8c8;
+  --table-header-bg: #e6f5ee;
+}
+
+.a4-page.theme-mint h2 {
+  padding-bottom: 0.1em;
+  border-bottom: 1.5px solid #2ea07a;
+}
+
+/* ─── Theme: Ink (水墨) ────────────────────── */
+.a4-page.theme-ink {
+  --page-bg: #f7f5ef;
+  --page-text: #1a1a1a;
+  --heading-color: #000000;
+  --link-color: #444;
+  --code-bg: #edeae0;
+  --code-inline-bg: #e6e2d8;
+  --quote-border: #1a1a1a;
+  --quote-text: #555;
+  --hr-color: #1a1a1a;
+  --table-border: #999;
+  --table-header-bg: #edeae0;
+}
+
+.a4-page.theme-ink h1 {
+  letter-spacing: 0.1em;
+  font-weight: 900;
+}
+
+.a4-page.theme-ink h2 {
+  letter-spacing: 0.06em;
+}
+
+.a4-page.theme-ink hr {
+  border-top: 2px solid #1a1a1a;
+  margin: 1em 0;
+}
+
+.a4-page.theme-ink blockquote {
+  border-left-width: 4px;
+  border-left-color: #1a1a1a;
+}
+
+/* ─── Theme: Tech (科技) ──────────────────── */
+.a4-page.theme-tech {
+  --page-bg: #f8f9fc;
+  --page-text: #1e293b;
+  --heading-color: #0958d9;
+  --link-color: #0958d9;
+  --code-bg: #eef2ff;
+  --code-inline-bg: #e0e7ff;
+  --quote-border: #0958d9;
+  --quote-text: #475569;
+  --hr-color: #cbd5e1;
+  --table-border: #cbd5e1;
+  --table-header-bg: #eef2ff;
+}
+
+.a4-page.theme-tech h1 {
+  letter-spacing: -0.01em;
+}
+
+.a4-page.theme-tech h2 {
+  padding-bottom: 0.12em;
+  border-bottom: 2px solid #0958d9;
+}
+
+.a4-page.theme-tech code {
+  color: #0958d9;
+}
+
+/* ─── Theme: Kraft (牛皮纸) ────────────────── */
+.a4-page.theme-kraft {
+  --page-bg: #e8dcc8;
+  --page-text: #3d3122;
+  --heading-color: #5c3d1a;
+  --link-color: #7a4e2a;
+  --code-bg: #ddd0b8;
+  --code-inline-bg: #d6c8ae;
+  --quote-border: #8b6b40;
+  --quote-text: #5c4a30;
+  --hr-color: #b8a480;
+  --table-border: #b8a480;
+  --table-header-bg: #ddd0b8;
+}
+
+.a4-page.theme-kraft h1 {
+  font-weight: 900;
+}
+
+.a4-page.theme-kraft hr {
+  border-top: 1.5px solid #8b6b40;
 }
 
 /* ─── Print ──────────────────────────────── */

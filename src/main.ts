@@ -2,57 +2,9 @@ import { parse } from 'marked'
 import { extractBlocks } from './markdown'
 import { findOptimalFontSize, clearMeasureCache } from './measure'
 import { createControls, getSettings } from './controls'
+import { SAMPLES } from './samples'
 import type { StyleSettings } from './controls'
 import './style.css'
-
-const SAMPLE_MARKDOWN = `# 张伟
-
-**高级软件工程师** | 上海
-zhang.wei@email.com | +86 138-0000-0000
-
----
-
-## 工作经历
-
-### 技术负责人 — Acme 科技有限公司
-*2022 - 至今*
-
-- 带领 8 人工程团队交付实时数据分析平台
-- 通过缓存优化和查询重构，将 API 响应时间降低 60%
-- 设计并落地微服务架构，日均承载 5000 万+ 请求
-
-### 高级工程师 — 字节流科技
-*2019 - 2022*
-
-- 搭建核心推荐引擎，基于协同过滤算法
-- 实施 CI/CD 流水线，部署时间从 2 小时缩短至 15 分钟
-- 通过 Code Review 和结对编程指导 5 名初级开发者
-
-### 软件工程师 — 创业科技 XYZ
-*2017 - 2019*
-
-- 使用 React、Node.js 和 PostgreSQL 进行全栈开发
-- 交付 3 个核心产品功能，保持 99.9% 可用率
-
----
-
-## 技术技能
-
-**编程语言：** TypeScript、Python、Go、Rust
-**框架：** React、Next.js、FastAPI、Gin
-**基础设施：** AWS、Kubernetes、Docker、Terraform
-**数据：** PostgreSQL、Redis、Elasticsearch、Kafka
-
----
-
-## 教育背景
-
-### 复旦大学 — 计算机科学硕士
-*2015 - 2017*
-
-### 同济大学 — 软件工程学士
-*2011 - 2015*
-`
 
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
 let lastLoadedFont = ''
@@ -62,7 +14,10 @@ let a4Wrapper: HTMLElement
 let a4Placeholder: HTMLElement
 let statusFontSize: HTMLElement
 let statusOverflow: HTMLElement
+let statusZoom: HTMLElement
 let textarea: HTMLTextAreaElement
+let fitScale = 1
+let userZoom = 1
 
 function buildDOM(): void {
   const app = document.getElementById('app')!
@@ -87,12 +42,17 @@ function buildDOM(): void {
   statusOverflow.className = 'status-overflow'
   statusOverflow.textContent = '内容溢出'
 
+  statusZoom = document.createElement('span')
+  statusZoom.className = 'status-zoom'
+  statusZoom.textContent = '100%'
+  statusZoom.title = '⌘+滚轮缩放，双击重置'
+
   const printBtn = document.createElement('button')
   printBtn.className = 'btn-print'
   printBtn.textContent = '打印 ⌘P'
   printBtn.addEventListener('click', () => window.print())
 
-  statusArea.append(statusFontSize, statusOverflow, printBtn)
+  statusArea.append(statusFontSize, statusZoom, statusOverflow, printBtn)
   topbar.append(title, statusArea)
 
   // Left panel
@@ -104,7 +64,32 @@ function buildDOM(): void {
 
   const textareaHeader = document.createElement('div')
   textareaHeader.className = 'textarea-header'
-  textareaHeader.textContent = '粘贴 / 编辑 Markdown'
+
+  const headerLabel = document.createElement('span')
+  headerLabel.textContent = '粘贴 / 编辑 Markdown'
+
+  const sampleSelect = document.createElement('select')
+  sampleSelect.className = 'sample-select'
+  const emptyOpt = document.createElement('option')
+  emptyOpt.value = ''
+  emptyOpt.textContent = '加载示例…'
+  sampleSelect.appendChild(emptyOpt)
+  for (const s of SAMPLES) {
+    const opt = document.createElement('option')
+    opt.value = s.value
+    opt.textContent = s.label
+    sampleSelect.appendChild(opt)
+  }
+  sampleSelect.value = SAMPLES[0].value
+  sampleSelect.addEventListener('change', () => {
+    const sample = SAMPLES.find(s => s.value === sampleSelect.value)
+    if (sample) {
+      textarea.value = sample.content
+      scheduleUpdate()
+    }
+  })
+
+  textareaHeader.append(headerLabel, sampleSelect)
 
   textarea = document.createElement('textarea')
   textarea.className = 'input-textarea'
@@ -158,7 +143,57 @@ function buildDOM(): void {
   // Auto-scale A4 page to fit the right panel
   const resizeObserver = new ResizeObserver(() => updateA4Scale())
   resizeObserver.observe(rightPanel)
+
+  // Cmd + scroll wheel to zoom preview
+  rightPanel.addEventListener('wheel', (e) => {
+    if (!e.metaKey) return
+    e.preventDefault()
+    const factor = e.deltaY > 0 ? 0.95 : 1.05
+    userZoom = Math.max(0.3, Math.min(3, userZoom * factor))
+    applyScale()
+    updateZoomStatus()
+  }, { passive: false })
+
+  // Mouse drag to pan preview
+  let isDragging = false
+  let dragStartX = 0
+  let dragStartY = 0
+  let scrollStartX = 0
+  let scrollStartY = 0
+
+  rightPanel.addEventListener('mousedown', (e) => {
+    if (e.button !== 0) return
+    isDragging = true
+    dragStartX = e.clientX
+    dragStartY = e.clientY
+    scrollStartX = rightPanel.scrollLeft
+    scrollStartY = rightPanel.scrollTop
+    rightPanel.classList.add('dragging')
+    e.preventDefault()
+  })
+
+  window.addEventListener('mousemove', (e) => {
+    if (!isDragging) return
+    rightPanel.scrollLeft = scrollStartX - (e.clientX - dragStartX)
+    rightPanel.scrollTop = scrollStartY - (e.clientY - dragStartY)
+  })
+
+  window.addEventListener('mouseup', () => {
+    if (!isDragging) return
+    isDragging = false
+    rightPanel.classList.remove('dragging')
+  })
+
+  // Double-click to reset zoom
+  rightPanel.addEventListener('dblclick', () => {
+    userZoom = 1
+    applyScale()
+    updateZoomStatus()
+  })
 }
+
+const PAGE_W = 794
+const PAGE_H = 1123
 
 function updateA4Scale(): void {
   const rightPanel = a4Wrapper.parentElement
@@ -168,16 +203,22 @@ function updateA4Scale(): void {
   const availW = rightPanel.clientWidth - padding * 2
   const availH = rightPanel.clientHeight - padding * 2
 
-  // A4 at 96 DPI: 210mm = 794px, 297mm = 1123px
-  const pageW = 794
-  const pageH = 1123
+  fitScale = Math.min(availW / PAGE_W, availH / PAGE_H)
+  applyScale()
+}
 
-  const scale = Math.min(availW / pageW, availH / pageH, 1)
-
+function applyScale(): void {
+  const scale = fitScale * userZoom
   a4Page.style.transform = `scale(${scale})`
   a4Page.style.transformOrigin = 'top left'
-  a4Wrapper.style.width = `${pageW * scale}px`
-  a4Wrapper.style.height = `${pageH * scale}px`
+  a4Wrapper.style.width = `${PAGE_W * scale}px`
+  a4Wrapper.style.height = `${PAGE_H * scale}px`
+}
+
+function updateZoomStatus(): void {
+  const pct = Math.round(userZoom * 100)
+  statusZoom.textContent = `${pct}%`
+  statusZoom.classList.toggle('zoom-modified', userZoom !== 1)
 }
 
 function scheduleUpdate(): void {
@@ -248,7 +289,10 @@ async function update(): Promise<void> {
   }
 }
 
-const THEME_CLASSES = ['theme-classic', 'theme-warm', 'theme-academic', 'theme-editorial']
+const THEME_CLASSES = [
+  'theme-classic', 'theme-warm', 'theme-academic', 'theme-editorial',
+  'theme-smartisan', 'theme-noir', 'theme-mint', 'theme-ink', 'theme-tech', 'theme-kraft',
+]
 
 function applyStyles(settings: StyleSettings, fontSize: number): void {
   // Theme class
@@ -266,7 +310,7 @@ function applyStyles(settings: StyleSettings, fontSize: number): void {
 // Init
 document.addEventListener('DOMContentLoaded', () => {
   buildDOM()
-  // Pre-fill with sample resume for demo
-  textarea.value = SAMPLE_MARKDOWN
+  // Pre-fill with default sample (resume)
+  textarea.value = SAMPLES[0].content
   scheduleUpdate()
 })
